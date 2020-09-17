@@ -74,16 +74,19 @@ class Solver(object):
         time_s = time.time()
         img_num = len(self.test_loader)
         for i, data_batch in tqdm(enumerate(self.test_loader), total=len(self.test_loader), desc="Testing..."):
-            images, name, im_size = data_batch['image'], data_batch['name'][0], np.asarray(
-                data_batch['size'])
+            images, name, im_size = \
+                data_batch['image'], \
+                data_batch['name'][0], \
+                np.asarray(data_batch['size'])
+
             if test_mode == 0:
                 images = images.numpy()[0].transpose((1, 2, 0))
                 scale = [0.5, 1, 1.5, 2]  # uncomment for multi-scale testing
                 # scale = [1]
                 multi_fuse = np.zeros(im_size, np.float32)
                 for k in range(0, len(scale)):
-                    im_ = cv2.resize(
-                        images, None, fx=scale[k], fy=scale[k], interpolation=cv2.INTER_LINEAR)
+                    im_ = cv2.resize(images, None, fx=scale[k], fy=scale[k],
+                                     interpolation=cv2.INTER_LINEAR)
                     im_ = im_.transpose((2, 0, 1))
                     im_ = torch.Tensor(im_[np.newaxis, ...])
 
@@ -105,14 +108,14 @@ class Solver(object):
                         pred = (pred - np.min(pred) + EPSILON) / \
                             (np.max(pred) - np.min(pred) + EPSILON)
 
-                        pred = cv2.resize(
-                            pred, (im_size[1], im_size[0]), interpolation=cv2.INTER_LINEAR)
+                        pred = cv2.resize(pred, (im_size[1], im_size[0]),
+                                          interpolation=cv2.INTER_LINEAR)
                         multi_fuse += pred
 
                 multi_fuse /= len(scale)
                 multi_fuse = 255 * (1 - multi_fuse)
-                cv2.imwrite(os.path.join(
-                    self.config.test_fold, name[:-4] + '_' + mode_name[test_mode] + '.png'), multi_fuse)
+                cv2.imwrite(os.path.join(self.config.test_fold, name[:-4] + '_' + mode_name[test_mode] + '.png'),
+                            multi_fuse)
 
             elif test_mode == 1:
                 with torch.no_grad():
@@ -126,6 +129,7 @@ class Solver(object):
                     #     self.config.test_fold, name[:-4] + '_' + mode_name[test_mode] + '.png'), multi_fuse)
                     cv2.imwrite(os.path.join(self.config.test_fold, name),
                                 multi_fuse)
+
         time_e = time.time()
         print('Speed: %f FPS' % (img_num/(time_e-time_s)))
         print('Test Done!')
@@ -141,33 +145,44 @@ class Solver(object):
             for i, data_batch in enumerate(self.train_loader):
                 if (i + 1) == iter_num:
                     break
-                edge_image, edge_label, sal_image, sal_label = data_batch['edge_image'], data_batch[
-                    'edge_label'], data_batch['sal_image'], data_batch['sal_label']
+
+                edge_image, edge_label, sal_image, sal_label = \
+                    data_batch['edge_image'], \
+                    data_batch['edge_label'], \
+                    data_batch['sal_image'], \
+                    data_batch['sal_label']
+
                 if (sal_image.size(2) != sal_label.size(2)) or (sal_image.size(3) != sal_label.size(3)):
                     print('IMAGE ERROR, PASSING```')
                     continue
-                edge_image, edge_label, sal_image, sal_label = Variable(edge_image), Variable(
-                    edge_label), Variable(sal_image), Variable(sal_label)
+                edge_image, edge_label, sal_image, sal_label = \
+                    Variable(edge_image), \
+                    Variable(edge_label), \
+                    Variable(sal_image), \
+                    Variable(sal_label)
                 if self.config.cuda:
-                    edge_image, edge_label, sal_image, sal_label = edge_image.cuda(
-                    ), edge_label.cuda(), sal_image.cuda(), sal_label.cuda()
+                    edge_image, edge_label, sal_image, sal_label = \
+                        edge_image.cuda(), \
+                        edge_label.cuda(), \
+                        sal_image.cuda(), \
+                        sal_label.cuda()
 
                 # edge part
                 edge_pred = self.net(edge_image, mode=0)
-                edge_loss_fuse = bce2d(
-                    edge_pred[0], edge_label, reduction='sum')
+                edge_loss_fuse = bce2d(edge_pred[0], edge_label,
+                                       reduction='sum')
                 edge_loss_part = []
                 for ix in edge_pred[1]:
-                    edge_loss_part.append(
-                        bce2d(ix, edge_label, reduction='sum'))
+                    edge_loss_part.append(bce2d(ix, edge_label,
+                                                reduction='sum'))
                 edge_loss = (edge_loss_fuse + sum(edge_loss_part)) / \
                     (self.iter_size * self.config.batch_size)
                 r_edge_loss += edge_loss.data
 
                 # sal part
                 sal_pred = self.net(sal_image, mode=1)
-                sal_loss_fuse = F.binary_cross_entropy_with_logits(
-                    sal_pred, sal_label, reduction='sum')
+                sal_loss_fuse = F.binary_cross_entropy_with_logits(sal_pred, sal_label,
+                                                                   reduction='sum')
                 sal_loss = sal_loss_fuse / \
                     (self.iter_size * self.config.batch_size)
                 r_sal_loss += sal_loss.data
@@ -199,11 +214,12 @@ class Solver(object):
 
             if epoch in self.lr_decay_epoch:
                 self.lr = self.lr * 0.1
-                self.optimizer = Adam(filter(
-                    lambda p: p.requires_grad, self.net.parameters()), lr=self.lr, weight_decay=self.wd)
+                self.optimizer = Adam(filter(lambda p: p.requires_grad, self.net.parameters()),
+                                      lr=self.lr,
+                                      weight_decay=self.wd)
 
-        torch.save(self.net.state_dict(), '%s/models/final.pth' %
-                   self.config.save_folder)
+        torch.save(self.net.state_dict(),
+                   '%s/models/final.pth' % self.config.save_folder)
 
 
 def bce2d(input, target, reduction=None):

@@ -46,8 +46,12 @@ class ImageDataTrain(data.Dataset):
         sal_image = torch.Tensor(sal_image)
         sal_label = torch.Tensor(sal_label)
 
-        sample = {'edge_image': edge_image, 'edge_label': edge_label,
-                  'sal_image': sal_image, 'sal_label': sal_label}
+        sample = {
+            'edge_image': edge_image,
+            'edge_label': edge_label,
+            'sal_image': sal_image,
+            'sal_label': sal_label
+        }
         return sample
 
     def __len__(self):
@@ -59,11 +63,11 @@ class ImageDataTest(data.Dataset):
         self.data_root = data_root
         self.data_list = data_list
 
-        if data_list is None:
-            self.image_list = glob.glob(
-                self.data_root + "/**/*.jpg", recursive=True)
-            self.image_list = list(
-                map(lambda p: os.path.relpath(p, self.data_root), self.image_list))
+        if not data_list:
+            self.image_list = glob.glob(self.data_root + "/**/*.jpg",
+                                        recursive=True)
+            self.image_list = list(map(lambda p: os.path.relpath(p, self.data_root),
+                                       self.image_list))
         else:
             with open(self.data_list, 'r') as f:
                 self.image_list = [x.strip() for x in f.readlines()]
@@ -85,14 +89,22 @@ def get_loader(config, mode='train', pin=False):
     shuffle = False
     if mode == 'train':
         shuffle = True
-        dataset = ImageDataTrain(
-            config.train_root, config.train_list, config.train_edge_root, config.train_edge_list)
-        data_loader = data.DataLoader(dataset=dataset, batch_size=config.batch_size,
-                                      shuffle=shuffle, num_workers=config.num_thread, pin_memory=pin)
+        dataset = ImageDataTrain(config.train_root,
+                                 config.train_list,
+                                 config.train_edge_root,
+                                 config.train_edge_list)
+        data_loader = data.DataLoader(dataset=dataset,
+                                      batch_size=config.batch_size,
+                                      shuffle=shuffle,
+                                      num_workers=config.num_thread,
+                                      pin_memory=pin)
     else:
         dataset = ImageDataTest(config.test_root, config.test_list)
-        data_loader = data.DataLoader(dataset=dataset, batch_size=config.batch_size,
-                                      shuffle=shuffle, num_workers=config.num_thread, pin_memory=pin)
+        data_loader = data.DataLoader(dataset=dataset,
+                                      batch_size=config.batch_size,
+                                      shuffle=shuffle,
+                                      num_workers=config.num_thread,
+                                      pin_memory=pin)
     return data_loader
 
 

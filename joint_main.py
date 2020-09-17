@@ -5,54 +5,61 @@ from dataset.joint_dataset import get_loader
 from joint_solver import Solver
 
 
-def get_test_info(sal_mode='e'):
-    if sal_mode == 'e':
+def get_test_info(config):
+    if config.sal_mode == 'e':
         image_root = './data/ECSSD/Imgs/'
         image_source = './data/ECSSD/test.lst'
-    elif sal_mode == 'p':
+    elif config.sal_mode == 'p':
         image_root = './data/PASCALS/Imgs/'
         image_source = './data/PASCALS/test.lst'
-    elif sal_mode == 'd':
+    elif config.sal_mode == 'd':
         image_root = './data/DUTOMRON/Imgs/'
         image_source = './data/DUTOMRON/test.lst'
-    elif sal_mode == 'h':
+    elif config.sal_mode == 'h':
         image_root = './data/HKU-IS/Imgs/'
         image_source = './data/HKU-IS/test.lst'
-    elif sal_mode == 's':
+    elif config.sal_mode == 's':
         image_root = './data/SOD/Imgs/'
         image_source = './data/SOD/test.lst'
-    elif sal_mode == 't':
+    elif config.sal_mode == 't':
         image_root = './data/DUTS-TE/Imgs/'
         image_source = './data/DUTS-TE/test.lst'
-    elif sal_mode == 'm_r':  # for speed test
+    elif config.sal_mode == 'm_r':  # for speed test
         image_root = './data/MSRA/Imgs_resized/'
         image_source = './data/MSRA/test_resized.lst'
-    elif sal_mode == 'b':  # BSDS dataset for edge evaluation
+    elif config.sal_mode == 'b':  # BSDS dataset for edge evaluation
         image_root = './data/HED-BSDS_PASCAL/HED-BSDS/test/'
         image_source = './data/HED-BSDS_PASCAL/HED-BSDS/test.lst'
-    elif sal_mode == "gx":
-        image_root = "/home/gx/datasets/DUTS-TE/DUTS-TE-Image/"
-        image_source = None
+    elif config.sal_mode == "gx":
+        # image_root = "/home/gx/datasets/DUTS-TE/DUTS-TE-Image/"
+        # image_source = None
+        image_root = config.training_root
+        image_source = config.training_list
+
     return image_root, image_source
 
 
 def main(config):
     if config.mode == 'train':
         train_loader = get_loader(config)
+
         run = 0
         while os.path.exists("%s/run-%d" % (config.save_folder, run)):
             run += 1
         os.mkdir("%s/run-%d" % (config.save_folder, run))
         os.mkdir("%s/run-%d/models" % (config.save_folder, run))
         config.save_folder = "%s/run-%d" % (config.save_folder, run)
+
         train = Solver(train_loader, None, config)
         train.train()
 
     elif config.mode == 'test':
-        config.test_root, config.test_list = get_test_info(config.sal_mode)
+        config.test_root, config.test_list = get_test_info(config)
         test_loader = get_loader(config, mode='test')
+
         if not os.path.exists(config.test_fold):
             os.mkdir(config.test_fold)
+
         test = Solver(None, test_loader, config)
         test.test(test_mode=config.test_mode)
 

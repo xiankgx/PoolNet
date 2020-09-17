@@ -12,8 +12,8 @@ from torch.autograd import Variable
 from torch.backends import cudnn
 from torch.nn import functional as F
 from torch.nn import utils
-from tqdm import tqdm
 from torch.optim import Adam
+from tqdm import tqdm
 
 from networks.poolnet import build_model, weights_init
 
@@ -32,8 +32,8 @@ class Solver(object):
             if self.config.cuda:
                 self.net.load_state_dict(torch.load(self.config.model))
             else:
-                self.net.load_state_dict(torch.load(
-                    self.config.model, map_location='cpu'))
+                self.net.load_state_dict(torch.load(self.config.model,
+                                                    map_location='cpu'))
             self.net.eval()
 
     # print the network information and parameter numbers
@@ -62,17 +62,22 @@ class Solver(object):
         self.lr = self.config.lr
         self.wd = self.config.wd
 
-        self.optimizer = Adam(filter(lambda p: p.requires_grad,
-                                     self.net.parameters()), lr=self.lr, weight_decay=self.wd)
+        self.optimizer = Adam(filter(lambda p: p.requires_grad, self.net.parameters()),
+                              lr=self.lr,
+                              weight_decay=self.wd)
         self.print_network(self.net, 'PoolNet Structure')
 
     def test(self):
         mode_name = 'sal_fuse'
+
         time_s = time.time()
         img_num = len(self.test_loader)
-        for i, data_batch in tqdm(enumerate(self.test_loader)):
-            images, name, im_size = data_batch['image'], data_batch['name'][0], np.asarray(
-                data_batch['size'])
+        for i, data_batch in tqdm(enumerate(self.test_loader), toal=len(self.test_loader), desc="Inferencing..."):
+            images, name, im_size = \
+                data_batch['image'], \
+                data_batch['name'][0], \
+                np.asarray(data_batch['size'])
+
             with torch.no_grad():
                 images = Variable(images)
                 if self.config.cuda:
@@ -80,6 +85,7 @@ class Solver(object):
                 preds = self.net(images)
                 pred = np.squeeze(torch.sigmoid(preds).cpu().data.numpy())
                 multi_fuse = 255 * pred
+
                 # cv2.imwrite(os.path.join(self.config.test_fold,
                 #                          name[:-4] + '_' + mode_name + '.png'), multi_fuse)
                 cv2.imwrite(os.path.join(self.config.test_fold, name),
@@ -98,17 +104,19 @@ class Solver(object):
             self.net.zero_grad()
             for i, data_batch in enumerate(self.train_loader):
                 sal_image, sal_label = data_batch['sal_image'], data_batch['sal_label']
+
                 if (sal_image.size(2) != sal_label.size(2)) or (sal_image.size(3) != sal_label.size(3)):
                     print('IMAGE ERROR, PASSING```')
                     continue
+
                 sal_image, sal_label = Variable(sal_image), Variable(sal_label)
                 if self.config.cuda:
                     # cudnn.benchmark = True
                     sal_image, sal_label = sal_image.cuda(), sal_label.cuda()
 
                 sal_pred = self.net(sal_image)
-                sal_loss_fuse = F.binary_cross_entropy_with_logits(
-                    sal_pred, sal_label, reduction='sum')
+                sal_loss_fuse = F.binary_cross_entropy_with_logits(sal_pred, sal_label,
+                                                                   reduction='sum')
                 sal_loss = sal_loss_fuse / \
                     (self.iter_size * self.config.batch_size)
                 r_sal_loss += sal_loss.data
@@ -127,7 +135,10 @@ class Solver(object):
                     if i == 0:
                         x_showEvery = 1
                     print('epoch: [%2d/%2d], iter: [%5d/%5d]  ||  Sal : %10.4f' % (
-                        epoch, self.config.epoch, i, iter_num, r_sal_loss/x_showEvery))
+                        epoch, self.config.epoch,
+                        i, iter_num,
+                        r_sal_loss/x_showEvery
+                    ))
                     print('Learning rate: ' + str(self.lr))
                     r_sal_loss = 0
 
@@ -137,11 +148,12 @@ class Solver(object):
 
             if epoch in self.lr_decay_epoch:
                 self.lr = self.lr * 0.1
-                self.optimizer = Adam(filter(
-                    lambda p: p.requires_grad, self.net.parameters()), lr=self.lr, weight_decay=self.wd)
+                self.optimizer = Adam(filter(lambda p: p.requires_grad, self.net.parameters()),
+                                      lr=self.lr,
+                                      weight_decay=self.wd)
 
-        torch.save(self.net.state_dict(), '%s/models/final.pth' %
-                   self.config.save_folder)
+        torch.save(self.net.state_dict(),
+                   '%s/models/final.pth' % self.config.save_folder)
 
 
 def bce2d(input, target, reduction=None):

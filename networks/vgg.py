@@ -23,10 +23,12 @@ def vgg(cfg, i, batch_norm=False):
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
+
             if batch_norm:
                 layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
+
             in_channels = v
     return layers
 
@@ -34,8 +36,16 @@ def vgg(cfg, i, batch_norm=False):
 class vgg16(nn.Module):
     def __init__(self):
         super(vgg16, self).__init__()
-        self.cfg = {'tun': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M',
-                            512, 512, 512, 'M', 512, 512, 512, 'M'], 'tun_ex': [512, 512, 512]}
+        self.cfg = {
+            'tun': [
+                64, 64, 'M',
+                128, 128, 'M',
+                256, 256, 256, 'M',
+                512, 512, 512, 'M',
+                512, 512, 512, 'M'
+            ],
+            # 'tun_ex': [512, 512, 512]  # GX: Unused
+        }
         self.extract = [8, 15, 22, 29]  # [3, 8, 15, 22, 29]
         self.base = nn.ModuleList(vgg(self.cfg['tun'], 3))
         for m in self.modules():
@@ -67,15 +77,30 @@ class vgg16_locate(nn.Module):
 
         ppms, infos = [], []
         for ii in [1, 3, 5]:
-            ppms.append(nn.Sequential(nn.AdaptiveAvgPool2d(ii), nn.Conv2d(
-                self.in_planes, self.in_planes, 1, 1, bias=False), nn.ReLU(inplace=True)))
+            ppms.append(
+                nn.Sequential(
+                    nn.AdaptiveAvgPool2d(ii),
+                    nn.Conv2d(self.in_planes, self.in_planes, 1, 1,
+                              bias=False),
+                    nn.ReLU(inplace=True)
+                )
+            )
         self.ppms = nn.ModuleList(ppms)
 
-        self.ppm_cat = nn.Sequential(nn.Conv2d(
-            self.in_planes * 4, self.in_planes, 3, 1, 1, bias=False), nn.ReLU(inplace=True))
+        self.ppm_cat = nn.Sequential(
+            nn.Conv2d(self.in_planes * 4, self.in_planes, 3, 1, 1,
+                      bias=False),
+            nn.ReLU(inplace=True)
+        )
+
         for ii in self.out_planes:
-            infos.append(nn.Sequential(nn.Conv2d(self.in_planes,
-                                                 ii, 3, 1, 1, bias=False), nn.ReLU(inplace=True)))
+            infos.append(
+                nn.Sequential(
+                    nn.Conv2d(self.in_planes, ii, 3, 1, 1,
+                              bias=False),
+                    nn.ReLU(inplace=True)
+                )
+            )
         self.infos = nn.ModuleList(infos)
 
         for m in self.modules():
@@ -91,16 +116,21 @@ class vgg16_locate(nn.Module):
 
     def forward(self, x):
         x_size = x.size()[2:]
+
         xs = self.vgg16(x)
 
         xls = [xs[-1]]
         for k in range(len(self.ppms)):
-            xls.append(F.interpolate(self.ppms[k](
-                xs[-1]), xs[-1].size()[2:], mode='bilinear', align_corners=True))
+            xls.append(F.interpolate(self.ppms[k](xs[-1]), xs[-1].size()[2:],
+                                     mode='bilinear',
+                                     align_corners=True))
         xls = self.ppm_cat(torch.cat(xls, dim=1))
+
         infos = []
         for k in range(len(self.infos)):
-            infos.append(self.infos[k](F.interpolate(
-                xls, xs[len(self.infos) - 1 - k].size()[2:], mode='bilinear', align_corners=True)))
+            infos.append(
+                self.infos[k](F.interpolate(xls, xs[len(self.infos) - 1 - k].size()[2:],
+                                            mode='bilinear',
+                                            align_corners=True)))
 
         return xs, infos
