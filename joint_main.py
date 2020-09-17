@@ -30,7 +30,7 @@ def get_test_info(config):
     elif config.sal_mode == 'b':  # BSDS dataset for edge evaluation
         image_root = './data/HED-BSDS_PASCAL/HED-BSDS/test/'
         image_source = './data/HED-BSDS_PASCAL/HED-BSDS/test.lst'
-    elif config.sal_mode == "gx":
+    elif config.sal_mode == "tr":
         # image_root = "/home/gx/datasets/DUTS-TE/DUTS-TE-Image/"
         # image_source = None
         image_root = config.training_root
