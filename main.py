@@ -112,7 +112,7 @@ if __name__ == '__main__':
         os.mkdir(config.save_folder)
 
     # Get test set info
-    test_root, test_list = get_test_info(config.sal_mode)
+    test_root, test_list = get_test_info(config)
     config.test_root = test_root
     config.test_list = test_list
 

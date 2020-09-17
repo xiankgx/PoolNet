@@ -22,15 +22,17 @@ class ImageDataTrain(data.Dataset):
                                       recursive=True)
             self.sal_list = list(map(lambda p: os.path.relpath(p, self.sal_root),
                                      self.sal_list))
-        with open(self.sal_source, 'r') as f:
-            self.sal_list = [x.strip() for x in f.readlines()]
+        else:
+            with open(self.sal_source, 'r') as f:
+                self.sal_list = [x.strip() for x in f.readlines()]
 
         self.sal_num = len(self.sal_list)
 
     def __getitem__(self, item):
         # sal data loading
         im_name = self.sal_list[item % self.sal_num].split()[0]
-        gt_name = self.sal_list[item % self.sal_num].split()[1]
+        #gt_name = self.sal_list[item % self.sal_num].split()[1]
+        gt_name = im_name.replace("DUTS-TR-Image", "DUTS-TR-Mask").replace(".jpg", ".png")
         sal_image = load_image(os.path.join(self.sal_root, im_name))
         sal_label = load_sal_label(os.path.join(self.sal_root, gt_name))
         sal_image, sal_label = cv_random_flip(sal_image, sal_label)
