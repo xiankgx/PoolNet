@@ -72,7 +72,7 @@ class Solver(object):
 
         time_s = time.time()
         img_num = len(self.test_loader)
-        for i, data_batch in tqdm(enumerate(self.test_loader), toal=len(self.test_loader), desc="Inferencing..."):
+        for i, data_batch in tqdm(enumerate(self.test_loader), total=len(self.test_loader), desc="Inferencing..."):
             images, name, im_size = \
                 data_batch['image'], \
                 data_batch['name'][0], \
@@ -88,7 +88,7 @@ class Solver(object):
 
                 # cv2.imwrite(os.path.join(self.config.test_fold,
                 #                          name[:-4] + '_' + mode_name + '.png'), multi_fuse)
-                cv2.imwrite(os.path.join(self.config.test_fold, name),
+                cv2.imwrite(os.path.join(self.config.test_fold, os.path.splitext(name)[0] + ".png"),
                             multi_fuse)
 
         time_e = time.time()

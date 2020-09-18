@@ -32,8 +32,8 @@ class Solver(object):
             if self.config.cuda:
                 self.net.load_state_dict(torch.load(self.config.model))
             else:
-                self.net.load_state_dict(torch.load(
-                    self.config.model, map_location='cpu'))
+                self.net.load_state_dict(torch.load(self.config.model, 
+                                                    map_location='cpu'))
             self.net.eval()
 
     # print the network information and parameter numbers
@@ -62,8 +62,7 @@ class Solver(object):
         self.lr = self.config.lr
         self.wd = self.config.wd
 
-        self.optimizer = Adam(filter(lambda p: p.requires_grad,
-                                     self.net.parameters()),
+        self.optimizer = Adam(filter(lambda p: p.requires_grad, self.net.parameters()),
                               lr=self.lr,
                               weight_decay=self.wd)
         self.print_network(self.net, 'PoolNet Structure')
@@ -73,7 +72,7 @@ class Solver(object):
         EPSILON = 1e-8
         time_s = time.time()
         img_num = len(self.test_loader)
-        for i, data_batch in tqdm(enumerate(self.test_loader), total=len(self.test_loader), desc="Testing..."):
+        for i, data_batch in tqdm(enumerate(self.test_loader), total=len(self.test_loader), desc="Inferencing..."):
             images, name, im_size = \
                 data_batch['image'], \
                 data_batch['name'][0], \
@@ -127,7 +126,7 @@ class Solver(object):
                     multi_fuse = 255 * pred
                     # cv2.imwrite(os.path.join(
                     #     self.config.test_fold, name[:-4] + '_' + mode_name[test_mode] + '.png'), multi_fuse)
-                    cv2.imwrite(os.path.join(self.config.test_fold, name),
+                    cv2.imwrite(os.path.join(self.config.test_fold, os.path.splitext(name)[0] + ".png"),
                                 multi_fuse)
 
         time_e = time.time()
